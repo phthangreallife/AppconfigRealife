@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DplSupport Demo</title>
+  <style>
+    /* ===== Basic reset ===== */
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Segoe UI, Roboto, Arial, sans-serif;background:#0b2a3a;color:#fff}
+    a{color:inherit}
+    /* ===== Video background full screen ===== */
+    .bg-wrap{position:fixed;inset:0;z-index:0;overflow:hidden}
+    .bg-wrap video{width:100%;height:100%;object-fit:cover;filter:brightness(0.6) saturate(1.1)}
+    /* ===== Blur overlay and vignette ===== */
+    .overlay{
+      position:fixed;inset:0;z-index:1;
+      background:linear-gradient(180deg, rgba(3,10,18,0.25), rgba(0,0,0,0.5));
+      pointer-events:none;
+    }
+    /* ===== Main container ===== */
+    .app{
+      position:relative;z-index:2;
+      max-width:980px;margin:28px auto;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px;
+      box-shadow:0 6px 30px rgba(0,0,0,0.6);backdrop-filter: blur(6px);
+      border:1px solid rgba(255,255,255,0.05)
+    }
+    header{display:flex;gap:12px;align-items:center}
+    header h1{font-size:20px;margin:0;color:#dff6ff}
+    .brand-sub{font-size:12px;color:#aee7ff99}
+    /* ===== Left panel (controls) ===== */
+    .controls{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px}
+    .card{flex:1 1 220px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04)}
+    .card h3{margin:0 0 8px 0;font-size:14px;color:#bdefff}
+    .toggle{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+    .toggle:last-child{border-bottom:0}
+    .switch{position:relative;width:52px;height:28px;background:#073244;border-radius:20px;padding:3px;cursor:pointer}
+    .switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:all .18s}
+    .switch.on{background:linear-gradient(90deg,#2ec6ff,#44ffb1)}
+    .switch.on .knob{left:27px}
+    /* ===== draggable crosshair ===== */
+   .crosshair {
+    display: none !important;
+}
+    /* ===== buttons ===== */
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+    .btn.primary{background:#13b0ff;color:#052029}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#dff6ff}
+    .btn.danger{background:#ff6b6b;color:#081018}
+    /* ===== loading bar ===== */
+    .loader{
+      position:relative;width:100%;height:10px;background:rgba(255,255,255,0.03);border-radius:20px;overflow:hidden;margin-top:10px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)
+    }
+    .loader .bar{position:absolute;left:-40%;top:0;height:100%;width:40%;background:linear-gradient(90deg,#2ec6ff,#44ffb1);animation:slide 1.5s linear infinite}
+    @keyframes slide{to{left:120%}}
+    /* ===== popup notification ===== */
+    .toast{
+      position:fixed;right:24px;bottom:24px;z-index:30;background:linear-gradient(180deg,#0f3040,#07202b);padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+      display:flex;gap:10px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,0.5)
+    }
+    .toast.hidden{display:none}
+    /* ===== advanced modal ===== */
+    .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:40}
+    .modal{width:560px;background:#061821;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.04)}
+    .row{display:flex;gap:8px;align-items:center;margin:8px 0}
+    input[type="range"]{width:100%}
+    label.small{font-size:12px;color:#9fe7ff}
+    /* small helper */
+    .muted{font-size:12px;color:#a8dff0cc}
+    footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#98dff8aa;font-size:12px}
+    @media(max-width:720px){.app{margin:8px}}
+  </style>
+</head>
+<body>
+  <!-- Video background (rename file if cần) -->
+  <div class="bg-wrap" aria-hidden="true">
+    <video autoplay muted loop playsinline id="bgvideo">
+      <source src="copy_09DD5A8A-FDBE-49B5-A2CB-ABFE908CD7D5.mp4" type="video/mp4">
+      <!-- fallback color if no video -->
+    </video>
+  </div>
+  <div class="overlay" aria-hidden="true"></div>
+
+  <div class="app" role="application" aria-label="Menu hỗ trợ FF">
+    <header>
+      <div>
+        <h1>DplSupport Demo — PhThangReaLlife</h1>
+        <div class="brand-sub"> https://linkbio.co/phthangrealife2850</div>
+      </div>
+      <div style="margin-left:auto">
+        <button class="btn ghost" id="btnShowAdvanced">DplSupport</button>
+      </div>
+    </header>
+
+    <div class="controls">
+      <!-- Card: Basic toggles -->
+      <div class="card">
+        <h3>Chức năng Chính</h3>
+
+        <div class="toggle">
+          <div>
+            <div style="font-weight:1200">Buff Dpl</div>
+            <div class="muted">Tăng Khả Năng Ổn Định Cho Dpl</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px" id="sensVal">100%</div>
+            <input type="range" id="sensRange" min="1" max="100" value="001" style="width:140px">
+          </div>
+        </div>
+
+        <div class="toggle">
+          <div>
+            <div style="font-weight:700">Support Aim</div>
+            <div class="muted">Hỗ Trợ Không Can Thiệp Game Chú Ý</div>
+          </div>
+          <div>
+            <div class="switch" id="toggleFire" role="button" tabindex="0" aria-pressed="false">
+              <div class="knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle">
+          <div>
+            <div style="font-weight:700">AimFrom Plus</div>
+            <div class="muted">Giảm Rung Tăng Tối Ưu Dpl</div>
+          </div>
+          <div>
+            <div class="switch" id="toggleAim" role="button" tabindex="0" aria-pressed="false">
+              <div class="knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" id="btn">Dplconfig</button>
+          <button class="btn ghost" id="btnReset">Reset</button>
+          <button class="btn danger" id="btnHideCross">Lock Tâm Ẩn</button>
+        </div>
+
+        <div class="loader" aria-hidden="true" id="miniLoader" style="display:none;margin-top:12px">
+          <div class="bar"></div>
+        </div>
+      </div>
+
+      <!-- Card: Visual/Effects -->
+      <div class="card">
+        <h3>PhthangReaLlife</h3>
+        <div class="toggle">
+          <div>
+            <div style="font-weight:700">AimLock</div>
+            <div class="muted">Giảm Lố Fix Rung</div>
+          </div>
+          <div style="min-width:60px">
+            <div style="text-align:right">Tối Ưu Giảm Lag Thiết Bị</div>
+          </div>
+        </div>
+
+        <div class="toggle">
+          <div>
+            <div style="font-weight:700">Dpl Thiết Bị</div>
+            <div class="muted">Điều Chỉnh Dpl Hợp Thiết Bị</div>
+          </div>
+          <div style="width:40%">
+            <input type="range" id="sizeRange" min="20" max="140" value="64">
+            <div style="font-size:12px;text-align:right" id="sizeVal">64px</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <button class="btn ghost" id="btnCenter">Lock Tâm Shadowrocket</button>
+          <button class="btn ghost" id="btnPulse">Super Dpl</button>
+        </div>
+      </div>
+
+      <!-- Card: Info & quick actions -->
+      <div class="card">
+        <h3>Thông Tin PhThangReaLlife
+ Mua Imz Menu Ipa Data Lh Zalo 0977885342</h3>
+        <div style="font-size:13px;color:#bfefff;margin-bottom:8px">Phiên demo • ThắngRealLife</div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn primary" id="btnStartLoad">Khởi động</button>
+          <button class="btn ghost" id="btnStopLoad">Tắt</button>
+        </div>
+
+        <div style="margin-top:12px;font-size:12px;color:#9fe7ff">
+          <div>Phiên: <span id="sessionId">#RL-20250809-01</span></div>
+          <div style="margin-top:8px" class="muted">Mẹo: dùng "Lưu Ý Đây Là Appconfig Nên 2 Cách Có Thể Có Td Cao Và Sâu 
+Bước 1 Cài bằng H5gg
+Bước 2 Cài Bằng Cấu hình.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="muted">PhthangRealLifeShop.store.vn</div>
+      <div class="muted">Demo Nhé ae Muốn Múc Bản Chính hỗ trợ 100% — Ibox Ngay Cho PhthangReaLlife Nhé</div>
+    </footer>
+  </div>
+
+  <!-- Draggable crosshair -->
+  <div class="crosshair" id="crosshair" title="Kéo để di chuyển tâm">
+    <div class="ring" aria-hidden="true"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast hidden" id="toast">
+    <div style="width:40px;height:40px;border-radius:8px;background:#042b36;display:flex;align-items:center;justify-content:center">
+      ✅
+    </div>
+    <div>
+      <div id="toastTitle" style="font-weight:700">DplSupport Đã Sẵn Sàng</div>
+      <div id="toastMsg" class="muted">Vào Game Check Nhé</div>
+    </div>
+  </div>
+
+  <!-- Advanced modal (hidden by default) -->
+  <div id="modalBack" class="modal-back" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;color:#c8f4ff">Cài đặt nâng cao</h3>
+        <button class="btn ghost" id="closeModal">Đóng</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="row">
+          <label style="width:140px" class="small">Buff Dpl (ms)</label>
+          <input type="number" id="advDelay" value="80" min="10" step="10" style="flex:1;padding:6px;border-radius:8px;border:0;background:#061826;color:#dff8ff">
+        </div>
+
+        <div class="row">
+          <label class="small">Tốc Độ Dellay</label>
+          <input type="range" min="1" max="10" id="advdpi" value="5" style="flex:1">
+        </div>
+
+        <div class="row">
+          <label class="small">PhthangReaLlife</label>
+        </div>
+        <textarea id="advNotes" rows="4" style="width:100%;padding:8px;border-radius:8px;background:#071d24;border:1px solid rgba(255,255,255,0.03);color:#cfeefb"></textarea>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn primary" id="btnExport">Xuất file config</button>
+          <button class="btn ghost" id="btnCopyConfig">Config Hoàn Thiện</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Helper utilities =====
+    const toast = id => {
+      const el = document.getElementById('toast');
+      const title = document.getElementById('toastTitle');
+      const msg = document.getElementById('toastMsg');
+      title.textContent = id.title || 'Thông báo';
+      msg.textContent = id.msg || '';
+      el.classList.remove('hidden');
+      clearTimeout(el._t);
+      el._t = setTimeout(()=>el.classList.add('hidden'), id.duration||3000);
+    };
+
+    // ===== Toggles =====
+    function makeSwitch(id, callback){
+      const el = document.getElementById(id);
+      el.addEventListener('click', ()=>{
+        el.classList.toggle('on');
+        const on = el.classList.contains('on');
+        el.setAttribute('aria-pressed', on);
+        callback && callback(on);
+      });
+      // keyboard
+      el.addEventListener('keydown', e=>{
+        if(e.key==='Enter'||e.key===' ') {e.preventDefault(); el.click()}
+      });
+    }
+    makeSwitch('toggleFire', on=>{
+      toast({title: on? 'Support Aim: ON' : 'Support Aim: OFF', msg: on? 'Support Aim được bật' : 'Support Aim Đã Bật'});
+    });
+    makeSwitch('toggleAim', on=>{
+      toast({title: on? 'Aim From Plus: ON' : 'Aim From Plus: OFF', msg: 'Kichs Hoạt'});
+    });
+
+    // ===== Sensitivity range =====
+    const sensR = document.getElementById('sensRange');
+    const sensVal = document.getElementById('sensVal');
+    sensR.addEventListener('input', ()=>{ sensVal.textContent = sensR.value + '%' });
+
+    // ===== Crosshair draggable =====
+    const cross = document.getElementById('crosshair');
+    const sizeRange = document.getElementById('sizeRange');
+    const sizeVal = document.getElementById('sizeVal');
+    let dragging = false, ox=0, oy=0;
+    cross.style.left = '50%'; cross.style.top = '50%';
+
+    cross.addEventListener('pointerdown', e=>{
+      dragging=true; cross.setPointerCapture(e.pointerId);
+      const rect = cross.getBoundingClientRect();
+      ox = e.clientX - rect.left - rect.width/2;
+      oy = e.clientY - rect.top - rect.height/2;
+      cross.style.transition = 'none';
+    });
+    window.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      let x = e.clientX - ox;
+      let y = e.clientY - oy;
+      // clamp to viewport
+      const w = window.innerWidth, h = window.innerHeight;
+      const cw = cross.offsetWidth, ch = cross.offsetHeight;
+      x = Math.max(cw/2, Math.min(w - cw/2, x));
+      y = Math.max(ch/2, Math.min(h - ch/2, y));
+      cross.style.left = x + 'px';
+      cross.style.top = y + 'px';
+      cross.style.transform = 'translate(-50%,-50%)';
+    });
+    window.addEventListener('pointerup', e=>{
+      if(!dragging) return;
+      dragging=false;
+      cross.releasePointerCapture && cross.releasePointerCapture(e.pointerId);
+      cross.style.transition = '';
+      toast({title:'Đã đặt tâm', msg:'Đã Kích Hoạt Dplsupport', duration:1200});
+    });
+
+    // size control
+    sizeRange.addEventListener('input', ()=>{
+      const v = sizeRange.value;
+      sizeVal.textContent = v + 'px';
+      cross.style.width = v + 'px';
+      cross.style.height = v + 'px';
+      // scale inner ring/dot relative
+      const dot = cross.querySelector('.dot');
+      const ring = cross.querySelector('.ring');
+      dot.style.width = Math.max(6, v/8) + 'px';
+      dot.style.height = Math.max(6, v/8) + 'px';
+      ring.style.width = (v*1.8) + 'px';
+      ring.style.height = (v*1.8) + 'px';
+    });
+
+    // center / pulse / hide
+    document.getElementById('btnCenter').addEventListener('click', ()=>{
+      cross.style.left='50%'; cross.style.top='50%'; toast({title:'Đã Kích Hoạt Dpl', msg:'Đã Kích Hoạt Dplsupport'})});
+    document.getElementById('btnPulse').addEventListener('click', ()=>{
+      cross.animate([{transform:'translate(-50%,-50%) scale(1)'},{transform:'translate(-50%,-50%) scale(1.14)'},{transform:'translate(-50%,-50%) scale(1)'}],{duration:700});
+      toast({title:'Pulse', msg:'Hiệu ứng pulsate' });
+    });
+
+    // ===== Mini loader / start stop =====
+    const mini = document.getElementById('miniLoader');
+    document.getElementById('btnStartLoad').addEventListener('click', ()=>{
+      mini.style.display='block';
+      setTimeout(()=>{ mini.style.display='none'; toast({title:'Hoàn tất khởi động', msg:'Phiên đã sẵn sàng'}); },1500);
+    });
+    document.getElementById('btnStopLoad').addEventListener('click', ()=>{ mini.style.display='none'; toast({title:'Dừng', msg:'Đã dừng mọi tiến trình'})});
+
+    // ===== Download config (simulate) =====
+    document.getElementById('DplSuper').addEventListener('click', ()=>{
+      showMiniExport('basic');
+    });
+    document.getElementById('btnExport').addEventListener('click', ()=>{ showMiniExport('advanced') });
+    document.getElementById('btnCopyConfig').addEventListener('click', ()=>{ copyConfigToClipboard(); });
+
+    function showMiniExport(mode){
+      const loader = document.getElementById('miniLoader');
+      loader.style.display='block';
+      setTimeout(()=>{
+        loader.style.display='none';
+        const cfg = generateConfig(mode);
+        // trigger download
+        const blob = new Blob([cfg], {type:'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = (mode==='advanced'?'config_adv.txt':'config_basic.txt');
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        toast({title:'Config'});
+      },1000);
+    }
+
+    function generateConfig(mode){
+      const sens = document.getElementById('sensRange').value;
+      const fire = document.getElementById('toggleFire').classList.contains('on');
+      const aim = document.getElementById('toggleAim').classList.contains('on');
+      const adv = {
+        delay: document.getElementById('advDelay').value,
+        follow: document.getElementById('advFollow').value,
+        notes: document.getElementById('advNotes').value || ''
+      };
+      const cfg = {
+        meta: {shop:'https://linkbio.co/phthangrealife2850', exported: new Date().toISOString(), mode},
+        settings: {sensitivity:sens, fireButton:fire, autoAim:aim, crosshairSize:document.getElementById('sizeRange').value},
+        advanced: adv
+      };
+      return JSON.stringify(cfg, null, 2);
+    }
+
+    function copyConfigToClipboard(){
+      const txt = generateConfig('advanced');
+      navigator.clipboard?.writeText(txt).then(()=>{
+        toast({title:'Đã sao chép', msg:'Cấu hình đã copy vào clipboard'});
+      }).catch(()=>{
+        toast({title:'Lỗi', msg:'Sẵn Sàng'});
+      });
+    }
+
+    // ===== Modal show/hide =====
+    const modal = document.getElementById('modalBack');
+    document.getElementById('btnShowAdvanced').addEventListener('click', ()=>{ modal.style.display='flex' });
+    document.getElementById('closeModal').addEventListener('click', ()=>{ modal.style.display='none' });
+
+    // ===== Reset =====
+    document.getElementById('btnReset').addEventListener('click', ()=>{
+      sensR.value = 50; sensVal.textContent='50%';
+      sizeRange.value = 64; sizeVal.textContent='64px';
+      document.getElementById('toggleAim').classList.remove('on');
+      document.getElementById('toggleFire').classList.remove('on');
+      cross.classList.remove('hidden');
+      toast({title:'Đã reset', msg:'Trạng thái đã trở về mặc định'});
+    });
+
+    // ===== Session ID creation (simple) =====
+    const sid = document.getElementById('sessionId');
+    sid.textContent = '#RL-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*900+100);
+
+    // Accessibility: allow video toggle via dblclick
+    document.getElementById('bgvideo').addEventListener('dblclick', ()=>{
+      const v = document.getElementById('bgvideo');
+      if(v.paused) { v.play(); toast({title:'Video: Play'}) } else { v.pause(); toast({title:'Video: Pause'}) }
+    });
+
+    // initial sizing call
+    sizeRange.dispatchEvent(new Event('input'));
+  </script>
+</body>
+</html>
